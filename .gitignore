@@ -1,0 +1,70 @@
+# Nextflow execution files
+work/
+results/
+data/
+logs/
+.nextflow/
+.nextflow.log*
+
+# Sequencing and alignment data
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.bai
+*.pod5
+*.sam
+*.cram
+
+# Large reference files
+*.fasta
+*.fasta.gz
+*.fa.gz
+*.gtf
+*.gtf.gz
+*.vcf.gz
+
+# Generated archives and logs
+*.zip
+*.tar.gz
+*.out
+*.err
+*.log
+
+# Temporary and historical backups
+*.bak
+*.before_*
+*_backup.nf
+*_backup.py
+*_backup/
+__pycache__/
+*.pyc
+
+# Original dataset-specific parameter files
+
+# Allow sanitised example configurations
+!params/*.example.json
+
+# Local development and testing files
+development/
+tests/
+validation/
+tools/
+*.slurm
+/test_*.nf
+/main_rna_dev_preview.nf
+/subworkflows/rna_workflow_flair_dev.nf
+
+# Dataset-specific files retained locally
+/params/
+/resources/
+
+# Additional test configurations
+/conf/*
+!/conf/base.config
+!/conf/hpc.config
+!/conf/local.config
+!/conf/rna_installed.config
+!/conf/reproducibility.config
+!/conf/junction_validation.config

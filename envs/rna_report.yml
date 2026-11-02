@@ -1,0 +1,15 @@
+name: rna_report
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - r-base
+  - r-tidyverse
+  - r-optparse
+  - r-cowplot
+  - r-base64enc
+  - r-ggrepel
+  - r-remotes
+  - bioconductor-rtracklayer

@@ -1,0 +1,10 @@
+name: rna
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - nanostat
+  - cutadapt=5.0
+  - stringtie=2.2.3

@@ -1,0 +1,9 @@
+name: clair3
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - clair3=2.0.3
