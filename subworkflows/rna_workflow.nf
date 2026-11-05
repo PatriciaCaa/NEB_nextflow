@@ -6,6 +6,7 @@ include { CUTADAPT } from '../modules/rna/cutadapt'
 include { PYCHOPPER } from '../modules/rna/pychopper'
 include { MINIMAP2 } from '../modules/rna/minimap2'
 include { INDEX_BAM } from '../modules/rna/index_bam'
+include { FLAIR_TRANSCRIPTOME } from '../modules/rna/flair_transcriptome'
 include { EXTRACT_SPLICE_JUNCTIONS } from '../modules/rna/extract_splice_junctions'
 include { COMPARE_SPLICE_JUNCTIONS } from '../modules/rna/compare_splice_junctions'
 include { STRINGTIE_UNGUIDED } from '../modules/rna/stringtie_unguided'
@@ -72,6 +73,18 @@ workflow RNA_WORKFLOW {
         reference_fasta_ch
     )
 
+    def assembler = params.rna_assembler ?: 'stringtie'
+    if (!(assembler in ['stringtie', 'flair', 'both'])) {
+        error "Unsupported RNA assembler: ${assembler}"
+    }
+    def useStringtie = assembler in ['stringtie', 'both']
+    def useFlair = assembler in ['flair', 'both']
+
+    // Index once for junction analysis and/or FLAIR3.
+    if (params.rna_junction_analysis != false || useFlair) {
+        INDEX_BAM(MINIMAP2.out.sorted_bam)
+    }
+
     // Primary internal-splicing analysis, independent of transcript assembly.
     // Runs on each aligned sample even if no comparison has been configured.
     junction_counts_ch = channel.empty()
@@ -86,7 +99,6 @@ workflow RNA_WORKFLOW {
         def junctionGene = params.rna_junction_gene ?:
             ((params.cases ?: []).size() > 0 ? params.cases[0].gene : 'NEB')
 
-        INDEX_BAM(MINIMAP2.out.sorted_bam)
         EXTRACT_SPLICE_JUNCTIONS(
             INDEX_BAM.out.indexed_bam,
             reference_gtf_ch,
@@ -206,34 +218,59 @@ workflow RNA_WORKFLOW {
         }
     }
 
-    // Per-sample unguided transcript assembly.
-    STRINGTIE_UNGUIDED(
-        MINIMAP2.out.sorted_bam
-    )
+    flair_gtf_ch = channel.empty()
+    flair_bed_ch = channel.empty()
+    flair_fasta_ch = channel.empty()
 
-    // Collect sample assemblies for a single merge.
-    // The merge module sorts GTF filenames.
-    unguided_gtfs_ch = STRINGTIE_UNGUIDED.out.unguided_gtf
-        .map { _sample, gtf -> gtf }
-        .collect()
+    if (useFlair) {
+        FLAIR_TRANSCRIPTOME(
+            INDEX_BAM.out.indexed_bam,
+            reference_fasta_ch,
+            reference_gtf_ch
+        )
+        flair_gtf_ch = FLAIR_TRANSCRIPTOME.out.isoform_gtf
+        flair_bed_ch = FLAIR_TRANSCRIPTOME.out.isoform_bed
+        flair_fasta_ch = FLAIR_TRANSCRIPTOME.out.isoform_fasta
+    }
 
-    STRINGTIE_MERGE(
-        unguided_gtfs_ch,
-        reference_gtf_ch
-    )
+    unguided_gtf_ch = channel.empty()
+    merged_gtf_ch = channel.empty()
+    requantified_ch = channel.empty()
+    combined_gtf_ch = channel.empty()
 
-    // Requantify each sample using the merged annotation.
-    STRINGTIE_REQUANT(
-        MINIMAP2.out.sorted_bam,
-        STRINGTIE_MERGE.out.merged_gtf.first()
-    )
+    if (useStringtie) {
+        // Per-sample unguided transcript assembly.
+        STRINGTIE_UNGUIDED(
+            MINIMAP2.out.sorted_bam
+        )
 
-    requant_gtfs_ch = STRINGTIE_REQUANT.out.requantified
-        .map { _sample, gtf, _abundance -> gtf }
-        .collect()
+        // Collect sample assemblies for a single merge.
+        // The merge module sorts GTF filenames.
+        unguided_gtfs_ch = STRINGTIE_UNGUIDED.out.unguided_gtf
+            .map { _sample, gtf -> gtf }
+            .collect()
 
-    COMBINE_REQUANT_GTFS(requant_gtfs_ch)
+        STRINGTIE_MERGE(
+            unguided_gtfs_ch,
+            reference_gtf_ch
+        )
 
+        // Requantify each sample using the merged annotation.
+        STRINGTIE_REQUANT(
+            MINIMAP2.out.sorted_bam,
+            STRINGTIE_MERGE.out.merged_gtf.first()
+        )
+
+        requant_gtfs_ch = STRINGTIE_REQUANT.out.requantified
+            .map { _sample, gtf, _abundance -> gtf }
+            .collect()
+
+        COMBINE_REQUANT_GTFS(requant_gtfs_ch)
+        unguided_gtf_ch = STRINGTIE_UNGUIDED.out.unguided_gtf
+        merged_gtf_ch = STRINGTIE_MERGE.out.merged_gtf
+        requantified_ch = STRINGTIE_REQUANT.out.requantified
+        combined_gtf_ch = COMBINE_REQUANT_GTFS.out.combined_gtf
+    }
 
     // Optional transcript characterisation from per-sample StringTie2 GTFs.
     transcript_summaries_ch = channel.empty()
@@ -255,10 +292,21 @@ workflow RNA_WORKFLOW {
 
         // STRINGTIE_REQUANT emits (sample, GTF, abundance).
         // Each sample must be characterised using its own GTF.
-        def summary_inputs_ch = STRINGTIE_REQUANT.out.requantified
-            .map { sample, gtf, _abundance ->
-                tuple(sample, 'stringtie', gtf)
-            }
+        def summary_inputs_ch = channel.empty()
+        if (useStringtie) {
+            summary_inputs_ch = STRINGTIE_REQUANT.out.requantified
+                .map { sample, gtf, _a ->
+                    tuple(sample, 'stringtie', gtf)
+                }
+        }
+        if (useFlair) {
+            def f = FLAIR_TRANSCRIPTOME.out.isoform_gtf
+                .map { sample, gtf ->
+                    tuple(sample, 'flair', gtf)
+                }
+            summary_inputs_ch = useStringtie
+                ? summary_inputs_ch.mix(f) : f
+        }
 
         EXTRACT_GENE_TRANSCRIPT_SUMMARY(
             summary_inputs_ch,
@@ -273,82 +321,88 @@ workflow RNA_WORKFLOW {
         transcript_summaries_ch =
             EXTRACT_GENE_TRANSCRIPT_SUMMARY.out.summary
 
-        // Preserve the correct sample-to-summary pairing.
-        def single_plot_inputs_ch = transcript_summaries_ch
-            .map { sample, _assembler, summary ->
-                tuple(sample, summary)
-            }
-
-        PLOT_SINGLE_SAMPLE(
-            single_plot_inputs_ch,
-            channel.value(file(
-                "${projectDir}/scripts/rna/plot_single_sample.R",
-                checkIfExists: true
-            )),
-            params.get('mane_transcript_id') ?: ''
-        )
-
-        single_sample_figures_ch = PLOT_SINGLE_SAMPLE.out.figures
-
-        // One header followed by every sample's transcript records.
-        def outputRoot =
-            params.get('results_dir') ?: params.get('outdir') ?: 'results'
-
-        // Combine sample summaries with consistent line endings.
-        // Validate column structure and retain exactly one header.
-        def combined_summary_ch = transcript_summaries_ch
-            .map { sample, _assembler, summary ->
-                tuple(sample.toString(), summary.text.readLines())
-            }
-            .collect(flat: false)
-            .map { entries ->
-                if (!entries) {
-                    error 'No transcript summaries available'
+        if (useStringtie) {
+            def stringtie_summaries_ch = transcript_summaries_ch
+                .filter { sample, method, tsv ->
+                    method == 'stringtie'
+                }
+            // Preserve the correct sample-to-summary pairing.
+            def single_plot_inputs_ch = stringtie_summaries_ch
+                .map { sample, _assembler, summary ->
+                    tuple(sample, summary)
                 }
 
-                def ordered = entries.sort { a, b -> a[0] <=> b[0] }
-                def header = ordered[0][1][0]
-                def ncols = header.split('\\t', -1).size()
-                def records = []
-
-                ordered.each { item ->
-                    def sample = item[0]
-                    def lines = item[1]
-
-                    if (!lines || lines[0] != header) {
-                        error "Transcript summary header mismatch: ${sample}"
-                    }
-
-                    lines.drop(1).findAll { it.trim() }.each { line ->
-                        if (line.split('\\t', -1).size() != ncols) {
-                            error "Invalid transcript summary columns: ${sample}"
-                        }
-                        records << line
-                    }
-                }
-
-                ([header] + records).join('\n') + '\n'
-            }
-            .collectFile(
-                name: 'combined_gene_transcript_summary.tsv',
-                sort: false,
-                storeDir: "${outputRoot}/rna/characterisation/summaries"
+            PLOT_SINGLE_SAMPLE(
+                single_plot_inputs_ch,
+                channel.value(file(
+                    "${projectDir}/scripts/rna/plot_single_sample.R",
+                    checkIfExists: true
+                )),
+                params.get('mane_transcript_id') ?: ''
             )
 
-        PLOT_ALL_SAMPLES(
-            combined_summary_ch,
-            channel.value(file(
-                "${projectDir}/scripts/rna/plot_all_samples.R",
-                checkIfExists: true
-            ))
-        )
+            single_sample_figures_ch = PLOT_SINGLE_SAMPLE.out.figures
 
-        all_samples_figures_ch = PLOT_ALL_SAMPLES.out.figures
+            // One header followed by every sample's transcript records.
+            def outputRoot =
+                params.get('results_dir') ?: params.get('outdir') ?: 'results'
+
+            // Combine sample summaries with consistent line endings.
+            // Validate column structure and retain exactly one header.
+            def combined_summary_ch = stringtie_summaries_ch
+                .map { sample, _assembler, summary ->
+                    tuple(sample.toString(), summary.text.readLines())
+                }
+                .collect(flat: false)
+                .map { entries ->
+                    if (!entries) {
+                        error 'No transcript summaries available'
+                    }
+
+                    def ordered = entries.sort { a, b -> a[0] <=> b[0] }
+                    def header = ordered[0][1][0]
+                    def ncols = header.split('\\t', -1).size()
+                    def records = []
+
+                    ordered.each { item ->
+                        def sample = item[0]
+                        def lines = item[1]
+
+                        if (!lines || lines[0] != header) {
+                            error "Transcript summary header mismatch: ${sample}"
+                        }
+
+                        lines.drop(1).findAll { it.trim() }.each { line ->
+                            if (line.split('\\t', -1).size() != ncols) {
+                                error "Invalid transcript summary columns: ${sample}"
+                            }
+                            records << line
+                        }
+                    }
+
+                    ([header] + records).join('\n') + '\n'
+                }
+                .collectFile(
+                    name: 'combined_gene_transcript_summary.tsv',
+                    sort: false,
+                    storeDir: "${outputRoot}/rna/characterisation/summaries"
+                )
+
+            PLOT_ALL_SAMPLES(
+                combined_summary_ch,
+                channel.value(file(
+                    "${projectDir}/scripts/rna/plot_all_samples.R",
+                    checkIfExists: true
+                ))
+            )
+
+            all_samples_figures_ch = PLOT_ALL_SAMPLES.out.figures
+        }
+
     }
 
     report_files_ch = channel.empty()
-
-    if ((params.rna_report_mode ?: 'comparison') == 'comparison') {
+    if (useStringtie) {
         FINAL_HTML_REPORT(
             cases_ch,
             COMBINE_REQUANT_GTFS.out.combined_gtf.first(),
@@ -367,10 +421,10 @@ workflow RNA_WORKFLOW {
     pychopper_rescued = pychopper_rescued_ch
     pychopper_reports = pychopper_report_ch
     sorted_bam = MINIMAP2.out.sorted_bam
-    unguided_gtf = STRINGTIE_UNGUIDED.out.unguided_gtf
-    merged_gtf = STRINGTIE_MERGE.out.merged_gtf
-    requantified = STRINGTIE_REQUANT.out.requantified
-    combined_gtf = COMBINE_REQUANT_GTFS.out.combined_gtf
+    unguided_gtf = unguided_gtf_ch
+    merged_gtf = merged_gtf_ch
+    requantified = requantified_ch
+    combined_gtf = combined_gtf_ch
     junction_counts = junction_counts_ch
     junction_chains = junction_chains_ch
     junction_summaries = junction_summaries_ch
@@ -382,4 +436,7 @@ workflow RNA_WORKFLOW {
     single_sample_figures = single_sample_figures_ch
     all_samples_figures = all_samples_figures_ch
     reports = report_files_ch
+    flair_gtf = flair_gtf_ch
+    flair_bed = flair_bed_ch
+    flair_fasta = flair_fasta_ch
 }
