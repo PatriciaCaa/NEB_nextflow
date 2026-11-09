@@ -25,8 +25,8 @@ process DEMULTIPLEX {
     """
 }
 
-// QUality control step for the output of the demultiplexing stage
-// Counts how many reads are in each barcode BAM
+// Count reads assigned to each barcode to assess demultiplexing yield.
+
 process DEMULTIPLEX_QC{
 
     label 'samtools'
