@@ -66,6 +66,9 @@ def main():
                         "from the reference FASTA index."
                     )
 
+            # Convert GTF coordinates (1-based, inclusive) to BED coordinates
+            # (0-based, half-open).
+            
             start = int(fields[3]) - 1
             end = int(fields[4])
 
