@@ -1,5 +1,7 @@
-// RNA subworkflow for the NEB project.
-// Reuses the analytical stages from RAPID.
+// RNA subworkflow for long-read transcript analysis.
+// Coordinates read preprocessing, alignment, splice-junction analysis,
+// transcript assembly, comparative analysis and reporting.
+// Incorporates RAPID-derived stages alongside newly developed modules.
 
 include { NANOSTAT } from '../modules/rna/nanostat'
 include { CUTADAPT } from '../modules/rna/cutadapt'
@@ -39,7 +41,8 @@ workflow RNA_WORKFLOW {
     // QC can run independently of trimming.
     NANOSTAT(samples_ch)
 
-    // Select preprocessing without altering downstream RAPID stages.
+    // Select the RNA read preprocessing method.
+    // Use Cutadapt by default unless trimming is disabled.
     def preprocessing = params.rna_preprocessing ?:
         ((params.rna_trim_mode ?: 'independent') == 'none'
             ? 'none' : 'cutadapt')
@@ -73,6 +76,10 @@ workflow RNA_WORKFLOW {
         reference_fasta_ch
     )
 
+    // Select StringTie2, FLAIR3 or both transcript assemblers.
+    // StringTie2 is the default when no assembler is specified.
+    // Validate the selection before enabling the corresponding processes.
+
     def assembler = params.rna_assembler ?: 'stringtie'
     if (!(assembler in ['stringtie', 'flair', 'both'])) {
         error "Unsupported RNA assembler: ${assembler}"
@@ -96,6 +103,10 @@ workflow RNA_WORKFLOW {
     junction_figures_ch = channel.empty()
 
     if (params.rna_junction_analysis != false) {
+
+        // Use the explicitly configured junction-analysis gene when available.
+        // Otherwise, use the first case's gene, falling back to NEB.
+
         def junctionGene = params.rna_junction_gene ?:
             ((params.cases ?: []).size() > 0 ? params.cases[0].gene : 'NEB')
 
@@ -109,8 +120,8 @@ workflow RNA_WORKFLOW {
         junction_chains_ch = EXTRACT_SPLICE_JUNCTIONS.out.chains
         junction_summaries_ch = EXTRACT_SPLICE_JUNCTIONS.out.summaries
 
-        // Match case/control names using the ORIGINAL params.cases metadata.
-        // Supports multiple comparisons with unique case_info.name values.
+        // Match junction counts to the configured case and control sample IDs.
+        // Pair the matching counts by comparison name to support multiple comparisons.
         def case_matches = cases_ch
             .combine(EXTRACT_SPLICE_JUNCTIONS.out.counts)
             .filter { info, sample, _counts -> info.case_sample.toString() == sample.toString() }
@@ -165,8 +176,9 @@ workflow RNA_WORKFLOW {
 
         junction_relative_usage_ch = RELATIVE_JUNCTION_USAGE.out.usage
 
-        // Optional read-level junction figures. Keep this disabled until the
-        // independent real-data Nextflow test succeeds.
+        // Generate optional read-level splice-junction figures when explicitly enabled.
+        // These figures combine junction annotations, relative usage and observed
+        // junction chains from the corresponding case and control samples.
         if (params.get('rna_junction_figures') == true) {
             def figure_meta_ch = cases_ch.map { info ->
                 tuple(info.name.toString(), info.gene.toString(),
@@ -217,6 +229,10 @@ workflow RNA_WORKFLOW {
             junction_figures_ch = PLOT_JUNCTION_FIGURES.out.figures
         }
     }
+
+    // Run FLAIR3 transcript assembly when 'flair' or 'both' is selected.
+    // Initialise empty output channels so the workflow also supports
+    // runs where FLAIR3 is disabled.
 
     flair_gtf_ch = channel.empty()
     flair_bed_ch = channel.empty()
@@ -272,7 +288,8 @@ workflow RNA_WORKFLOW {
         combined_gtf_ch = COMBINE_REQUANT_GTFS.out.combined_gtf
     }
 
-    // Optional transcript characterisation from per-sample StringTie2 GTFs.
+    // Optional gene-level transcript characterisation using StringTie2
+    // and/or FLAIR3 assemblies, depending on the selected assembler.
     transcript_summaries_ch = channel.empty()
     single_sample_figures_ch = channel.empty()
     all_samples_figures_ch = channel.empty()
@@ -293,6 +310,9 @@ workflow RNA_WORKFLOW {
         // STRINGTIE_REQUANT emits (sample, GTF, abundance).
         // Each sample must be characterised using its own GTF.
         def summary_inputs_ch = channel.empty()
+
+        // Generate single-sample and multi-sample figures from StringTie2 summaries.
+        // FLAIR3 summaries are retained separately but are not used by these plots.
         if (useStringtie) {
             summary_inputs_ch = STRINGTIE_REQUANT.out.requantified
                 .map { sample, gtf, _a ->
@@ -401,6 +421,9 @@ workflow RNA_WORKFLOW {
 
     }
 
+    // Generate the final HTML report when StringTie2 is enabled.
+    // Reporting uses the combined StringTie2 GTF; FLAIR3-only runs
+    // do not currently produce this report.
     report_files_ch = channel.empty()
     if (useStringtie) {
         FINAL_HTML_REPORT(
