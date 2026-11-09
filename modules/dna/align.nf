@@ -30,7 +30,8 @@ process ALIGN {
 
 }
 
-//  QC for the output of the alignment process
+// Assess alignment quality using samtools flagstat and stats,
+// and calculate read depth across the target genomic regions.
 
 process ALIGNMENT_QC{
     cpus 2
