@@ -1,5 +1,15 @@
-// DNA subworkflow - this connects the modules together
+// Orchestrates the long-read DNA analysis workflow,
+// from basecalling and alignment to variant detection,
+// annotation and gene-focused reporting.
 
+
+
+// Import the DNA analysis processes defined in separate module files.
+// These processes are invoked within DNA_WORKFLOW below.
+
+include { BASECALL; BASECALL_NANOSTAT_QC } from '../modules/dna/basecall.nf'
+include { ALIGN; ALIGNMENT_QC } from '../modules/dna/align.nf'
+include { SMALL_VARIANTS; SMALL_VARIANTS_QC; NORMALISE_SMALL_VARIANTS } from '../modules/dna/small_variants.nf'
 include { BASECALL; BASECALL_NANOSTAT_QC } from '../modules/dna/basecall.nf'
 include { ALIGN; ALIGNMENT_QC } from '../modules/dna/align.nf'
 include { SMALL_VARIANTS; SMALL_VARIANTS_QC; NORMALISE_SMALL_VARIANTS } from '../modules/dna/small_variants.nf'
@@ -22,6 +32,7 @@ include { EXTRACT_GENE_REGIONS } from '../modules/dna/gene_regions.nf'
 
 workflow DNA_WORKFLOW {
 
+    // Declare the inputs received from the parent workflow.
     take:
     pod5_dir
     barcode_kit
@@ -41,6 +52,7 @@ workflow DNA_WORKFLOW {
     target_gene
     known_variant
 
+    // Define the analysis steps and process connections.
     main:
 
     BASECALL(
@@ -122,6 +134,9 @@ workflow DNA_WORKFLOW {
         STRUCTURAL_VARIANTS.out.sv_vcf
     )
 
+    // Select the CNV analysis method and collect its annotated VCF
+    // for use in the final variant report.
+
     def annotated_cnv_vcf_ch
 
     if (cnv_caller == 'qdnaseq') {
@@ -170,6 +185,9 @@ workflow DNA_WORKFLOW {
 
         error "Unsupported CNV caller: ${cnv_caller}. Use 'qdnaseq' or 'spectre'."
     }
+
+    // Combine annotated small variants, structural variants and CNVs
+    // with gene coordinates to generate the gene-focused report.
 
     GENERATE_VARIANT_REPORT(
         ANNOTATE_SMALL_VARIANTS.out.annotated_vcf,
