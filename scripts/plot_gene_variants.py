@@ -5,6 +5,13 @@ import csv
 from collections import Counter
 
 import matplotlib
+
+# Use a non-interactive backend to generate figures without a graphical display.
+# This supports execution on HPC nodes and headless Linux systems.
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -129,7 +136,10 @@ def main():
                 variant_end = int(v.get("variant_end") or position)
             except (ValueError, TypeError, KeyError):
                 continue
-
+                
+            # Convert the VCF position to a zero-based start coordinate and
+            # restrict the plotted interval to the target gene boundaries.
+            
             left = max(start, position - 1)
             right = min(end, max(position, variant_end))
 
