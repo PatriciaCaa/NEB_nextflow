@@ -18,7 +18,9 @@ process BASECALL{
     output:
     path "basecalled.bam"
 
-    // Dorado ver sion needed
+    // Assign barcode classifications during basecalling so that
+    // demultiplexing can use the existing labels without reclassification.
+
     script:
     """
     dorado basecaller ${model} ${pod5_dir} \
