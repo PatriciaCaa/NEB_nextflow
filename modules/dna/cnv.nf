@@ -2,7 +2,8 @@
 // and its bundled run_qdnaseq.r script for adaptive-sampling / shallow-WGS data.
 // QDNAseq already generates QC-related outputs such as bin-level data
 // and diagnostic plots, so no separate QC process is required here.
-// The segmented CNV VCF is bgzipped and indexed for downstream annotation.
+// The corrected CNV calls VCF is compressed and indexed for downstream annotation.
+// The segmented VCF is retained separately in the QDNAseq output directory.
 
 process QDNASEQ_CNV {
 
