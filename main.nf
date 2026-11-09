@@ -1,14 +1,15 @@
 
-// This file will call the DNA and RNA subworkflows
+// DNA sequencing inputs and analysis parameters.
+// Dataset-specific values can be overridden through a Nextflow parameter file.
 
-params.pod5_dir = null // i need the file path
-params.barcode_kit = 'SQK-NBD114-24' // Given by Kylie as possible kit (needs confirmation)
-params.model = 'dna_r10.4.1_e8.2_400bps_sup@v5.2.0' // This is the re-basecalling model Kylie used.
+params.pod5_dir = null
+params.barcode_kit = 'SQK-NBD114-24' // Set according to the barcode kit used for sequencing.
+params.model = 'dna_r10.4.1_e8.2_400bps_sup@v5.2.0'
 params.reference_fasta = null
 params.reference_fai = null
-params.annotation_gtf = null // GTF annotation matching the reference genome assembly
-params.clair3_model = 'r1041_e82_400bps_sup_v520' // Clair3 model matched to Dorado v5.2.0 SUP R10.4.1 E8.2 400bps data.
-params.threads = 8 // This is just a defafult, I can change it depending on the HPC resources
+params.annotation_gtf = null
+params.clair3_model = 'r1041_e82_400bps_sup_v520' // Must match the sequencing chemistry and basecalling model.
+params.threads = 8
 params.target_bed = null
 params.qdnaseq_bin_size = 500
 params.cnv_caller = 'qdnaseq'
