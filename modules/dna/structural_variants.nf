@@ -2,7 +2,9 @@
 
 process STRUCTURAL_VARIANTS {
 
-    cpus 8 // I've hard-coded this for now I need to find ways to make it configurable
+    // Allocate eight CPUs to Sniffles2; task.cpus determines the thread count.
+
+    cpus 8 
 
     label 'sniffles'
 
