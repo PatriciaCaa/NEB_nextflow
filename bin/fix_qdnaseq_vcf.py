@@ -59,8 +59,7 @@ def main(args):
                     # this is a bad VCF file and the cols needs to be reassembled
                     # from multiple lines of QDNAseq output
                     if in_record:
-                        # first col is the 'x' garbage, only append to
-                        # current_record when in_record
+                        # Collect subsequent lines belonging to the malformed VCF record.
                         current_record.append(line.strip())
                     else:
                         sys.stderr.write(
