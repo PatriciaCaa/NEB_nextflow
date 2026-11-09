@@ -1,10 +1,7 @@
-// Generate csv file with usefull information contain
-// - allele frequency from gnomAD if possible
-// - in-silico scores, if possible
-// - allele state detected (heterozygous  / homozygous)
-// - We should know 1 variant from WGS - but we shouldn't let that dominate the search for the second one
-// - The workflow should probably flag the known varian not filter it out entirely
-// - plot the variants along the gene structure 
+// Generate gene-focused variant reports from annotated SNPs, indels, SVs and CNVs.
+// Include available variant annotations and genotype information.
+// Highlight the specified known variant without excluding other findings.
+// Visualise detected variants relative to the target gene and exon structure.
 
 process GENERATE_VARIANT_REPORT {
 
