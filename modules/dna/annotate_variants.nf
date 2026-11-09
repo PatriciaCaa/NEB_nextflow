@@ -1,5 +1,5 @@
-// This section needs to have all the variants Kylie requested.
-// The known variant must be highlighted 
+// Annotate small variants, structural variants and CNVs using Ensembl VEP.
+// Compress and index the annotated VCF files for downstream analysis.
 
 process ANNOTATE_SMALL_VARIANTS {
 
