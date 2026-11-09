@@ -21,9 +21,9 @@ process SMALL_VARIANTS {
     path "*.clair3/merge_output.vcf.gz.tbi", emit: vcf_index
     path "*.clair3", emit: clair3_dir
 
-    // Run Clair3 on the aligned ONT BAM using the selected pretrained model.
-    // Clair3 calling is restricted to the NEB region using the BED file supplied by the workflow.
-    // set clair3_model to the full installed model directory path on HPC when I have access.
+    /// Call small variants using Clair3 and the specified ONT-compatible model.
+    // Restrict variant calling to the genomic regions defined in target_bed.
+    // The Clair3 model directory is supplied through the clair3_model parameter.
 
     script:
     """
@@ -60,6 +60,9 @@ process SMALL_VARIANTS_QC {
         > \${sample_id}.small_variants.stats.txt
     """
 }
+
+// Normalise variant representation against the reference genome,
+// including left-alignment of indels and splitting multiallelic records.
 
 process NORMALISE_SMALL_VARIANTS {
 
