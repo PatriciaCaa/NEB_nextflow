@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Record software versions and source-code checksums for reproducibility.
+# This script uses CSD3-specific environment paths and requires adaptation before running on another computing system.
 set -euo pipefail
 
 OUT="${1:?Provide the provenance output directory}"
