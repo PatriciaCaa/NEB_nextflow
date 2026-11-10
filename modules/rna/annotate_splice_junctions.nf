@@ -23,6 +23,10 @@ process ANNOTATE_SPLICE_JUNCTIONS {
 
     mkdir -p output
 
+    # Classify observed splice junctions against the reference GTF.
+    # Unannotated junctions are absent from this annotation,
+    # but are not necessarily biologically novel.
+
     python3 ${annotation_script} \
         --comparison ${comparison_tsv} \
         --reference-gtf ${reference_gtf} \
