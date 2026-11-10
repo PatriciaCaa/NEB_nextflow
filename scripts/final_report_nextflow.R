@@ -246,7 +246,8 @@ valid_transcripts <- fdt_for_threshold %>%
   filter(any(prop_cov >= thresh, na.rm = TRUE)) %>%
   distinct(transcript_id) %>% pull() %>% as.character()
 
-# ALWAYS add MANE if present in your data, even if it failed the threshold
+# Retain the MANE Select transcript for structural comparison, even when its abundance is below the reporting threshold.
+    
 if (!is.null(mane_id) && mane_id %in% fdt_for_threshold$transcript_id) {
   valid_transcripts <- union(valid_transcripts, mane_id)
 }
