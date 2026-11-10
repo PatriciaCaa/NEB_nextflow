@@ -24,7 +24,8 @@ process COMBINE_REQUANT_GTFS {
         fi
 
         sample_base=\$(basename "\$gtf" _mergedQuant.gtf)
-
+    
+        # Add the originating sample ID to each GTF feature's attributes so transcript records remain traceable after merging.
         awk -v SAMPLE="\$sample_base" '
             BEGIN { FS = OFS = sprintf("%c", 9) }
 
