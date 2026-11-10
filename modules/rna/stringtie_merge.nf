@@ -15,6 +15,9 @@ process STRINGTIE_MERGE {
     path "merged.gtf", emit: merged_gtf
 
     script:
+
+    // Sort the input GTF files by filename for reproducible ordering.
+    // Prepare a newline-separated list for StringTie2's merge operation.
     def gtf_list = gtfs.sort { gtf -> gtf.name }.collect { gtf -> gtf.name }.join('\n')
 
     """
