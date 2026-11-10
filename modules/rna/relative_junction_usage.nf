@@ -21,6 +21,10 @@ process RELATIVE_JUNCTION_USAGE {
     """
     set -euo pipefail
 
+    # Calculate each junction's relative share of observed read support
+    # at its donor and acceptor sites in case and control samples.
+    # These descriptive proportions are not percent-spliced-in.
+
     python3 ${usage_script} \
         --input ${annotated_comparison_tsv} \
         --outdir . \
