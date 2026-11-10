@@ -16,6 +16,9 @@ process INDEX_BAM {
     """
     set -euo pipefail
 
+    # The BAM is already coordinate-sorted by MINIMAP2.
+    # Create its index for efficient gene-region queries.
+
     samtools index -@ ${task.cpus} ${bam}
     """
 }
