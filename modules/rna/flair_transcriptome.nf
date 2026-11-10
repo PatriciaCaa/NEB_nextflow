@@ -28,6 +28,10 @@ process FLAIR_TRANSCRIPTOME {
     """
     set -euo pipefail
 
+    # Assemble transcript isoforms from aligned long reads using FLAIR3.
+    # Use the reference genome and GTF to guide transcript reconstruction.
+    # Output GTF, BED and FASTA files for downstream characterisation.
+
     flair transcriptome \
         -b ${bam} \
         -g ${reference_fasta} \
