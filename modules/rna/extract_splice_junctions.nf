@@ -27,6 +27,11 @@ process EXTRACT_SPLICE_JUNCTIONS {
     echo "Junction extraction: ${sample}, ${gene}, \$region"
 
     mkdir -p output
+
+    # Analyse reads overlapping the target gene, excluding unmapped,
+    # Retain primary mapped alignments by excluding unmapped reads (4),
+    # secondary alignments (256) and supplementary alignments (2048).
+
     samtools view -F 2308 ${bam} "\$region" | python3 ${extractor_script} --sample "${sample}" --min-mapq ${params.rna_junction_min_mapq ?: 20} --min-anchor ${params.rna_junction_min_anchor ?: 8} --outdir output
 
     mv output/junction_counts.tsv "${sample}.${gene}.junction_counts.tsv"
