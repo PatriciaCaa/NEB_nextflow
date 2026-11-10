@@ -24,6 +24,10 @@ process FINAL_HTML_REPORT {
           emit: report_files
 
     script:
+
+    // Format variant names and positions for the R reporting script.
+    // Use a 10% transcript proportion threshold when none is specified.
+
     def variant_names = (case_info.variant_name ?: []).join(',')
     def variant_positions = (case_info.variant_pos ?: []).join(',')
     def threshold = case_info.prop_threshold ?: 0.10
