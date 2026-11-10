@@ -19,6 +19,10 @@ process COMPARE_SPLICE_JUNCTIONS {
     """
     set -euo pipefail
     mkdir -p output
+
+    # Compare junction read support between case and control samples.
+    # This is a descriptive comparison, not a statistical test of differential splicing.
+
     python3 ${compare_script} --case ${case_counts} --control ${control_counts} --gene "${case_info.gene}" --min-support ${params.rna_junction_min_support ?: 1} --outdir output
 
     mv output/junction_comparison.tsv "${case_info.name}.junction_comparison.tsv"
