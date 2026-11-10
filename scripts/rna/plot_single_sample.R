@@ -322,8 +322,6 @@ save_plot(
   "transcript_complexity.png"
 )
 
-# Original bubble plot retained; approved Figure 1 is generated separately.
-
 cat("Sample:", sample_name, "\n")
 cat("Transcript models:", nrow(data), "\n")
 cat("MANE ID:", mane_id, "\n")
