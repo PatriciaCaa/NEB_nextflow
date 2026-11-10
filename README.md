@@ -98,6 +98,34 @@ FLAIR3 was subsequently integrated into the main RNA workflow, allowing users to
 
 The updated integration passed Nextflow preview validation. A separate end-to-end execution of the final combined-assembler configuration remains outstanding.
 
+## Representative Results
+
+The following figures illustrate selected outputs generated during
+the computational evaluation of the DNA and RNA workflows using
+publicly available Oxford Nanopore sequencing datasets.
+
+### DNA variant characterisation
+
+![CYP2D6 variant landscape](figures/dna/CYP2D6_variant_landscape.png)
+
+**Figure 1.** Gene-focused variant visualisation for *CYP2D6*,
+showing detected genomic variants in relation to the annotated
+gene structure.
+
+### RNA transcript characterisation
+
+![NEB splice-junction counts](figures/rna/NEB_GSE287954_junction_counts.png)
+
+**Figure 2.** Distribution of splice-junction counts in
+*NEB*-associated transcript models from the GSE287954 dataset.
+
+### RNA splice-junction analysis
+
+![CACNA1C splice-junction arcs](figures/rna/CACNA1C_junction_arcs.png)
+
+**Figure 3.** Visualisation of observed splice junctions in
+*CACNA1C*, including read-support information and reference annotation.
+
 ## Usage
 
 The workflow was developed primarily for Linux and high-performance computing environments, including the Cambridge Service for Data Driven Discovery (CSD3).
