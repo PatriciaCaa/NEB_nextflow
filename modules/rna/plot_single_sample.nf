@@ -18,6 +18,8 @@ process PLOT_SINGLE_SAMPLE {
         emit: figures
 
     script:
+
+    // Pass the MANE Select transcript ID when available so the R script can identify the reference transcript in the figures.
     def mane_arg = mane_id ? "\"${mane_id}\"" : ""
 
     """
