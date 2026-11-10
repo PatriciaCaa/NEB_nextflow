@@ -36,7 +36,7 @@ def input_files(params):
         if params.get(key):
             yield key, Path(params[key])
 
-
+# Include completed and cached Nextflow tasks when collecting output files.
 def completed_workdirs(trace):
     if not trace.exists():
         return []
