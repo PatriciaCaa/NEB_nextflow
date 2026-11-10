@@ -30,6 +30,9 @@ process PLOT_JUNCTION_FIGURES {
     test -s ${control_chains}
     command -v "${rscript_executable}" >/dev/null
 
+    # Merge overlapping reference exons across all annotated transcripts
+    # of the target gene to provide a common genomic context for the plots.
+
     python3 ${exon_script} \
         --reference-gtf ${reference_gtf} \
         --gene "${gene}" \
