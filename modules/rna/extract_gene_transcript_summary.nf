@@ -16,8 +16,8 @@ process EXTRACT_GENE_TRANSCRIPT_SUMMARY {
     output:
     tuple val(sample), val(assembler), path('transcript_summary.tsv'), emit: summary
 
-    # Summarise assembled transcripts associated with the target gene.
-    # Gene assignment is based on annotation evidence and genomic overlap, and does not independently validate transcript identity.
+    // Summarise assembled transcripts associated with the target gene.
+    // Gene assignment is based on annotation evidence and genomic overlap, and does not independently validate transcript identity.
 
     script:
     """
