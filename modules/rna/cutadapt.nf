@@ -11,6 +11,10 @@ process CUTADAPT {
     tuple val(sample), path("${sample}.trimmed.fq"), emit: trimmed_reads
 
     script:
+
+    // Independent mode trims forward and reverse adapters separately.
+    // Linked mode requires both adapters and allows reverse-complement matching.
+    // Independent trimming is the default.
     def mode = params.rna_trim_mode ?: 'independent'
 
     if (mode == 'linked') {
