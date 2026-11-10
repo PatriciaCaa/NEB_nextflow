@@ -9,6 +9,10 @@ process MINIMAP2 {
     output:
     tuple val(sample), path("${sample}.sorted.bam"), emit: sorted_bam
 
+    // Control strand-specific alignment of RNA reads.
+    // 'auto' allows alignment to either strand (default).
+    // 'forward' applies minimap2's -uf option for forward-strand cDNA.
+
     script:
     def strandMode = params.rna_minimap2_strand_mode
     if (!(strandMode in ['auto', 'forward'])) {
