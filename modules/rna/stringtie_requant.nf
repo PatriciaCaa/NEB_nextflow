@@ -21,6 +21,9 @@ process STRINGTIE_REQUANT {
     """
     set -euo pipefail
 
+    # Estimate transcript abundance using the merged GTF as a reference.
+    # The -e option restricts quantification to the supplied transcript models, ather than performing a new transcript assembly.
+
     stringtie \
         ${sorted_bam} \
         -e \
