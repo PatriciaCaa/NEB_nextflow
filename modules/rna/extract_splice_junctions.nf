@@ -28,7 +28,7 @@ process EXTRACT_SPLICE_JUNCTIONS {
 
     mkdir -p output
 
-    // Analyse reads overlapping the target gene, excluding unmapped,
+    # Analyse reads overlapping the target gene, excluding unmapped,
     # Retain primary mapped alignments by excluding unmapped reads (4),
     # secondary alignments (256) and supplementary alignments (2048).
 
