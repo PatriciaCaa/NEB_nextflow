@@ -28,6 +28,9 @@ process PYCHOPPER {
         -w ${sample}.rescued.fastq \
         ${fastq} ${sample}.full_length.fastq
 
+    # Combine classified full-length and rescued reads for downstream alignment.
+    # Keep unclassified reads separate from the analysis input.
+
     cat ${sample}.full_length.fastq \
         ${sample}.rescued.fastq \
         > ${sample}.oriented.fastq
